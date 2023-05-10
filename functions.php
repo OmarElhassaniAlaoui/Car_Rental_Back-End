@@ -4,23 +4,55 @@ define("MB", 1048576);
 
 function filterRequest($requestname)
 {
-  return  htmlspecialchars(strip_tags($_POST[$requestname]));
+  return htmlspecialchars(strip_tags($_POST[$requestname]));
 }
 
-function getAllData($table, $where = null, $values = null)
+function getAllData($table, $where = null, $values = null, $json = true)
+{
+    global $con;
+    $data = array();
+    if ($where == null) {
+        $stmt = $con->prepare("SELECT  * FROM $table   ");
+    } else {
+        $stmt = $con->prepare("SELECT  * FROM $table WHERE   $where ");
+    }
+    $stmt->execute($values);
+    $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $count  = $stmt->rowCount();
+    if ($json == true) {
+        if ($count > 0) {
+            echo json_encode(array("status" => "success", "data" => $data));
+        } else {
+            echo json_encode(array("status" => "failure"));
+        }
+        return $count;
+    } else {
+        if ($count > 0) {
+            return  array("status" => "success", "data" => $data);
+        } else {
+            return  array("status" => "failure");
+        }
+    }
+}
+
+
+function getData($table, $where = null, $values = null, $json = true)
 {
     global $con;
     $data = array();
     $stmt = $con->prepare("SELECT  * FROM $table WHERE   $where ");
     $stmt->execute($values);
-    $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $data = $stmt->fetch(PDO::FETCH_ASSOC);
     $count  = $stmt->rowCount();
-    if ($count > 0){
-        echo json_encode(array("status" => "success", "data" => $data));
+    if ($json == true) {
+        if ($count > 0) {
+            echo json_encode(array("status" => "success", "data" => $data));
+        } else {
+            echo json_encode(array("status" => "failure"));
+        }
     } else {
-        echo json_encode(array("status" => "failure"));
+        return $count;
     }
-    return $count;
 }
 
 function insertData($table, $data, $json = true)
@@ -108,7 +140,7 @@ function imageUpload($imageRequest)
     $msgError = "size";
   }
   if (empty($msgError)) {
-    move_uploaded_file($imagetmp,  "../upload/" . $imagename);
+    move_uploaded_file($imagetmp,  "./uploads/" . $imagename);
     return $imagename;
   } else {
     return "fail";
